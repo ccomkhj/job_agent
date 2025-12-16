@@ -14,22 +14,16 @@ CONSTRAINTS:
 - For cover letters: Focus on why you're qualified and motivated
 - For HR questions: Answer directly, ask for clarification if information is missing
 
-COVER LETTER OUTPUT FORMAT (JSON):
-{
-  "title": "Cover Letter – Senior Data Engineer",
-  "body": "Dear Hiring Manager,\n\n[Full cover letter text]",
-  "key_points_used": [
-    "5+ years building data pipelines → aligns with ETL requirements",
-    "AWS + Spark experience → matches cloud stack"
-  ]
-}
+OUTPUT FORMAT (JSON):
+For cover letters, return:
+- title: Brief title for the cover letter
+- body: Full cover letter text
+- key_points_used: Array of key points from profile that were used
 
-HR QUESTION ANSWER OUTPUT FORMAT (JSON):
-{
-  "answer": "[Direct answer to the question]",
-  "assumptions": ["Any reasonable assumptions made"],
-  "follow_up_question": "Single clarification question if needed, or null"
-}
+For HR questions, return:
+- answer: Direct answer to the question
+- assumptions: Array of any assumptions made (can be empty)
+- follow_up_question: Single clarification question if needed, or null
 
 FILTERED PROFILE DATA:
 {filtered_profile}

@@ -8,13 +8,12 @@ YOUR TASK:
 Analyze the job description and match it to the most relevant user profile variant. Filter out irrelevant experience and skills to create a job-specific profile summary.
 
 OUTPUT FORMAT (JSON only):
-{
-  "selected_profile_version": "Data Engineer",
-  "relevant_skills": ["Python", "SQL", "AWS", "Spark"],
-  "relevant_experience": ["Built data pipelines at Company X", "Managed ETL processes"],
-  "relevant_education": ["MS in Computer Science"],
-  "motivational_alignment": "Passionate about building scalable data infrastructure"
-}
+Return a JSON object with these fields:
+- selected_profile_version: The chosen career variant (string)
+- relevant_skills: Array of relevant skills for this job
+- relevant_experience: Array of relevant experience items
+- relevant_education: Array of relevant education items
+- motivational_alignment: Why this candidate wants this role (string)
 
 INSTRUCTIONS:
 1. Choose ONE profile variant that best matches the job (Data Science, Data Engineering, Computer Vision, or CTO)

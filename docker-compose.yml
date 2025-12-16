@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: job-agent-backend
+    environment:
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - ENVIRONMENT=production
+      - HOST=0.0.0.0
+      - PORT=8000
+      - FRONTEND_URL=http://frontend
+    volumes:
+      - backend_data:/app/data
+    networks:
+      - job-agent-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: job-agent-frontend
+    environment:
+      - VITE_API_URL=http://localhost:8000/api
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - job-agent-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  backend_data:
+    driver: local
+
+networks:
+  job-agent-network:
+    driver: bridge

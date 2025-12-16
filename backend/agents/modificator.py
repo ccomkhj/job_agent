@@ -22,18 +22,21 @@ class ModificatorAgent:
     """Agent responsible for applying user-selected feedback to modify generated content"""
 
     def __init__(self):
-        self.llm = get_llm()
         self.output_parser = JsonOutputParser()
+        self._chain = None
 
-        # Load and setup prompt template
-        prompt_text = load_prompt_template("modificator")
-        self.prompt = PromptTemplate(
-            template=prompt_text,
-            input_variables=["original_content", "selected_feedback", "filtered_profile", "job_description"],
-        )
-
-        # Create the chain
-        self.chain = self.prompt | self.llm | self.output_parser
+    @property
+    def chain(self):
+        """Lazy-load the LangChain chain"""
+        if self._chain is None:
+            llm = get_llm()
+            prompt_text = load_prompt_template("modificator")
+            prompt = PromptTemplate(
+                template=prompt_text,
+                input_variables=["original_content", "selected_feedback", "filtered_profile", "job_description"],
+            )
+            self._chain = prompt | llm | self.output_parser
+        return self._chain
 
     async def apply_modifications(
         self,

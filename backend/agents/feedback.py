@@ -21,18 +21,21 @@ class FeedbackAgent:
     """Agent responsible for reviewing generated content and providing feedback"""
 
     def __init__(self):
-        self.llm = get_llm()
         self.output_parser = JsonOutputParser(pydantic_object=FeedbackResponse)
+        self._chain = None
 
-        # Load and setup prompt template
-        prompt_text = load_prompt_template("feedback")
-        self.prompt = PromptTemplate(
-            template=prompt_text,
-            input_variables=["generated_content", "job_description", "filtered_profile"],
-        )
-
-        # Create the chain
-        self.chain = self.prompt | self.llm | self.output_parser
+    @property
+    def chain(self):
+        """Lazy-load the LangChain chain"""
+        if self._chain is None:
+            llm = get_llm()
+            prompt_text = load_prompt_template("feedback")
+            prompt = PromptTemplate(
+                template=prompt_text,
+                input_variables=["generated_content", "job_description", "filtered_profile"],
+            )
+            self._chain = prompt | llm | self.output_parser
+        return self._chain
 
     async def provide_feedback(
         self,

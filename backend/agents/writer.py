@@ -1,17 +1,17 @@
 import json
 import logging
-from typing import Dict, Any, Union
-
-from langchain_core.prompts import PromptTemplate
-from langchain_core.output_parsers import JsonOutputParser
+from typing import Any, Dict, Union
 
 from chains import get_llm, load_prompt_template
+from langchain_core.output_parsers import JsonOutputParser
+from langchain_core.prompts import PromptTemplate
 from schemas.models import (
-    JobDescription,
-    DataCollectorOutput,
     CoverLetterResponse,
-    QuestionAnswerResponse
+    DataCollectorOutput,
+    JobDescription,
+    QuestionAnswerResponse,
 )
+from utils.error_handler import LLMError, handle_llm_errors
 
 logger = logging.getLogger(__name__)
 
@@ -20,23 +20,30 @@ class WriterAgent:
     """Agent responsible for generating cover letters and answering HR questions"""
 
     def __init__(self):
-        self.llm = get_llm()
         self.output_parser = JsonOutputParser()
+        self._chain = None
 
-        # Load and setup prompt template
-        prompt_text = load_prompt_template("writer")
-        self.prompt = PromptTemplate(
-            template=prompt_text,
-            input_variables=["filtered_profile", "job_description", "task_type", "additional_context"],
-        )
+    @property
+    def chain(self):
+        """Lazy-load the LangChain chain"""
+        if self._chain is None:
+            llm = get_llm()
+            prompt_text = load_prompt_template("writer")
+            prompt = PromptTemplate(
+                template=prompt_text,
+                input_variables=[
+                    "filtered_profile",
+                    "job_description",
+                    "task_type",
+                    "additional_context",
+                ],
+            )
+            self._chain = prompt | llm | self.output_parser
+        return self._chain
 
-        # Create the chain
-        self.chain = self.prompt | self.llm | self.output_parser
-
+    @handle_llm_errors
     async def write_cover_letter(
-        self,
-        job_description: JobDescription,
-        filtered_profile: DataCollectorOutput
+        self, job_description: JobDescription, filtered_profile: DataCollectorOutput
     ) -> CoverLetterResponse:
         """
         Generate a tailored cover letter.
@@ -54,12 +61,14 @@ class WriterAgent:
             job_desc_text = self._format_job_description(job_description)
 
             # Run the chain
-            result = await self.chain.ainvoke({
-                "filtered_profile": profile_text,
-                "job_description": job_desc_text,
-                "task_type": "cover_letter",
-                "additional_context": ""
-            })
+            result = await self.chain.ainvoke(
+                {
+                    "filtered_profile": profile_text,
+                    "job_description": job_desc_text,
+                    "task_type": "cover_letter",
+                    "additional_context": "",
+                }
+            )
 
             # Validate and return structured output
             return CoverLetterResponse(**result)
@@ -70,14 +79,15 @@ class WriterAgent:
             return CoverLetterResponse(
                 title="Cover Letter",
                 body="I am writing to express my interest in this position. Please see my resume for details of my qualifications.",
-                key_points_used=[]
+                key_points_used=[],
             )
 
+    @handle_llm_errors
     async def answer_question(
         self,
         job_description: JobDescription,
         filtered_profile: DataCollectorOutput,
-        question: str
+        question: str,
     ) -> QuestionAnswerResponse:
         """
         Answer an HR question.
@@ -96,12 +106,14 @@ class WriterAgent:
             job_desc_text = self._format_job_description(job_description)
 
             # Run the chain
-            result = await self.chain.ainvoke({
-                "filtered_profile": profile_text,
-                "job_description": job_desc_text,
-                "task_type": "question_answer",
-                "additional_context": f"HR Question: {question}"
-            })
+            result = await self.chain.ainvoke(
+                {
+                    "filtered_profile": profile_text,
+                    "job_description": job_desc_text,
+                    "task_type": "question_answer",
+                    "additional_context": f"HR Question: {question}",
+                }
+            )
 
             # Validate and return structured output
             return QuestionAnswerResponse(**result)
@@ -112,14 +124,16 @@ class WriterAgent:
             return QuestionAnswerResponse(
                 answer="I don't have sufficient information to answer this question based on my provided profile.",
                 assumptions=[],
-                follow_up_question="Could you please provide more context about what specific information you're looking for?"
+                follow_up_question="Could you please provide more context about what specific information you're looking for?",
             )
 
     def _format_filtered_profile(self, filtered_profile: DataCollectorOutput) -> str:
         """Format filtered profile data for the prompt"""
         sections = []
 
-        sections.append(f"Selected Profile Version: {filtered_profile.selected_profile_version}")
+        sections.append(
+            f"Selected Profile Version: {filtered_profile.selected_profile_version}"
+        )
 
         if filtered_profile.relevant_skills:
             sections.append("Relevant Skills:")
@@ -136,7 +150,9 @@ class WriterAgent:
             for edu in filtered_profile.relevant_education:
                 sections.append(f"- {edu}")
 
-        sections.append(f"Motivational Alignment: {filtered_profile.motivational_alignment}")
+        sections.append(
+            f"Motivational Alignment: {filtered_profile.motivational_alignment}"
+        )
 
         return "\n\n".join(sections)
 

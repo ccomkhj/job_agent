@@ -14,22 +14,10 @@ Review the content and suggest specific improvements. Focus on:
 - Structural improvements
 
 OUTPUT FORMAT (JSON only):
-{
-  "feedback_items": [
-    {
-      "type": "tone",
-      "suggestion": "Make the opening paragraph more confident and enthusiastic"
-    },
-    {
-      "type": "alignment",
-      "suggestion": "Stronger emphasis on cloud architecture experience to match job requirements"
-    },
-    {
-      "type": "clarity",
-      "suggestion": "Clarify the impact metrics in the second paragraph"
-    }
-  ]
-}
+Return a JSON object with:
+- feedback_items: Array of feedback objects, each with:
+  - type: One of "tone", "alignment", "clarity", "emphasis", "structure"
+  - suggestion: Specific, actionable improvement suggestion
 
 INSTRUCTIONS:
 1. Provide 2-4 specific, actionable feedback items

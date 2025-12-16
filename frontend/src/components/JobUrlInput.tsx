@@ -78,3 +78,4 @@ const JobUrlInput: React.FC<JobUrlInputProps> = ({ onSubmit, disabled = false })
 };
 
 export default JobUrlInput;
+

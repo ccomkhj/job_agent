@@ -16,19 +16,22 @@ class DataCollectorAgent:
     """Agent responsible for analyzing job descriptions and selecting relevant profile data"""
 
     def __init__(self):
-        self.llm = get_llm()
         self.profile_normalizer = ProfileNormalizer()
         self.output_parser = JsonOutputParser(pydantic_object=DataCollectorOutput)
+        self._chain = None
 
-        # Load and setup prompt template
-        prompt_text = load_prompt_template("data_collector")
-        self.prompt = PromptTemplate(
-            template=prompt_text,
-            input_variables=["job_description", "user_profile"],
-        )
-
-        # Create the chain
-        self.chain = self.prompt | self.llm | self.output_parser
+    @property
+    def chain(self):
+        """Lazy-load the LangChain chain"""
+        if self._chain is None:
+            llm = get_llm()
+            prompt_text = load_prompt_template("data_collector")
+            prompt = PromptTemplate(
+                template=prompt_text,
+                input_variables=["job_description", "user_profile"],
+            )
+            self._chain = prompt | llm | self.output_parser
+        return self._chain
 
     async def collect_data(self, job_description: JobDescription, user_profile: UserProfile) -> DataCollectorOutput:
         """

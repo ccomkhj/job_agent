@@ -3,24 +3,24 @@ import os
 from pathlib import Path
 from typing import Optional
 
-from dotenv import load_dotenv
-
-# Load environment variables from .env file
-load_dotenv()
-
-from langchain_openai import ChatOpenAI
-
 # Global LLM instance
-_llm: Optional[ChatOpenAI] = None
+_llm = None
 
 
-def get_llm() -> ChatOpenAI:
+def get_llm():
     """Get the configured LangChain LLM instance"""
     global _llm
     if _llm is None:
+        # Import here to avoid SSL context issues at module level
+        from langchain_openai import ChatOpenAI
+
         api_key = os.getenv("OPENROUTER_API_KEY")
         if not api_key:
-            raise ValueError("OPENROUTER_API_KEY environment variable is required")
+            # For development/testing, provide a helpful error message
+            raise ValueError(
+                "OPENROUTER_API_KEY environment variable is required. "
+                "Please set it with: export OPENROUTER_API_KEY='your-api-key-here'"
+            )
 
         _llm = ChatOpenAI(
             base_url="https://openrouter.ai/api/v1",

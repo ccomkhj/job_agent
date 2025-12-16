@@ -64,3 +64,4 @@ class CoverLetterWriterChain:
         except Exception as e:
             logger.error(f"Error in cover letter generation chain: {e}")
             raise
+

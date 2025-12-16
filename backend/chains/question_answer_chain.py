@@ -64,3 +64,4 @@ class QuestionAnswerWriterChain:
         except Exception as e:
             logger.error(f"Error in question answer chain: {e}")
             raise
+
