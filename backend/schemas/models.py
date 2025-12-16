@@ -1,31 +1,38 @@
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from pydantic import BaseModel, Field, HttpUrl
+from pydantic.root_model import RootModel
+
+
+class CareerStory(BaseModel):
+    """Individual career story with achievement, education, and motivation"""
+
+    initiator: Optional[str] = None
+    achievement_sample: Optional[str] = None
+    education_profile: Optional[str] = None
+    motivation_goals: Optional[str] = None
 
 
 class CareerBackground(BaseModel):
-    """Career background with multiple variants per user"""
+    """Career background with multiple career categories"""
 
-    data_science: Optional[str] = None
-    data_engineering: Optional[str] = None
-    computer_vision: Optional[str] = None
-    cto: Optional[str] = None
+    careers: Dict[str, CareerStory] = Field(default_factory=dict)
 
 
 class UserProfile(BaseModel):
     """User profile with multiple career variants"""
 
     career_background: CareerBackground
-    education_background: str
-    motivation: str
+    education_background: str = ""
+    motivation: str = ""
 
 
 class JobDescription(BaseModel):
     """Parsed job description data"""
 
-    url: HttpUrl
+    url: str  # Can be URL or "manual" for manual descriptions
     title: Optional[str] = None
     responsibilities: List[str]
     requirements: List[str]
@@ -56,7 +63,8 @@ class DataCollectorOutput(BaseModel):
 class CoverLetterRequest(BaseModel):
     """Request to generate a cover letter"""
 
-    job_description_url: HttpUrl
+    job_description_url: Optional[str] = None
+    job_description_text: Optional[str] = None
     user_profile: UserProfile
 
 
@@ -73,7 +81,8 @@ class CoverLetterResponse(BaseModel):
 class QuestionAnswerRequest(BaseModel):
     """Request to answer an HR question"""
 
-    job_description_url: HttpUrl
+    job_description_url: Optional[str] = None
+    job_description_text: Optional[str] = None
     hr_question: str
     user_profile: UserProfile
 
@@ -139,7 +148,9 @@ class ModificationRequest(BaseModel):
 class ModificationResponse(BaseModel):
     """Response containing modified output"""
 
-    modified_output: Dict[str, Any] = Field(..., description="The modified output")
+    modified_output: Union[
+        CoverLetterResponse, QuestionAnswerResponse, Dict[str, Any]
+    ] = Field(..., description="The modified output")
 
 
 # Session management models

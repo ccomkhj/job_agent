@@ -1,19 +1,19 @@
-import React, { useState, useEffect, useRef } from 'react';
-import type {
-  ChatMessage,
-  MessageType,
-  AppState,
-  UserProfile,
-  CoverLetterApiResponse,
-  QuestionAnswerApiResponse,
-  FeedbackItem
-} from '../types';
+import React, { useEffect, useRef, useState } from 'react';
 import ApiService from '../services/api';
-import MessageBubble from './MessageBubble';
+import type {
+  AppState,
+  ChatMessage,
+  CoverLetterApiResponse,
+  FeedbackItem,
+  MessageType,
+  QuestionAnswerApiResponse,
+  UserProfile
+} from '../types';
+import ActionButtons from './ActionButtons';
 import JobUrlInput from './JobUrlInput';
+import MessageBubble from './MessageBubble';
 import ProfileInput from './ProfileInput';
 import QuestionInput from './QuestionInput';
-import ActionButtons from './ActionButtons';
 
 const ChatInterface: React.FC = () => {
   const [state, setState] = useState<AppState>({
@@ -32,10 +32,29 @@ const ChatInterface: React.FC = () => {
   useEffect(() => {
     const loadSavedProfile = async () => {
       try {
+        console.log('ChatInterface: Loading saved profile...');
         const savedProfile = await ApiService.loadProfile();
+        console.log('ChatInterface: Loaded profile', savedProfile);
+
         if (savedProfile) {
+          console.log('ChatInterface: Setting currentProfile in state');
           setState(prev => ({ ...prev, currentProfile: savedProfile }));
-          addMessage('system', `Loaded saved profile: ${savedProfile.career_background.data_science ? 'Data Science focus' : 'General profile'}`);
+
+          // Count how many career categories have content
+          const careerCount = Object.keys(savedProfile.career_background.careers || {}).length;
+          const hasDataScience = savedProfile.career_background.careers?.['Data Science'];
+
+          let profileType = 'Empty profile';
+          if (careerCount > 0) {
+            profileType = `${careerCount} career categorie${careerCount > 1 ? 's' : ''}`;
+            if (hasDataScience) {
+              profileType += ' (includes Data Science)';
+            }
+          }
+
+          addMessage('system', `✅ Loaded saved profile: ${profileType}`);
+        } else {
+          console.log('ChatInterface: No saved profile found');
         }
       } catch (error) {
         console.error('Error loading saved profile:', error);
@@ -92,6 +111,27 @@ const ChatInterface: React.FC = () => {
     }
   };
 
+  const handleManualJobDescriptionSubmit = async (description: string) => {
+    setLoading(true);
+    setError(undefined);
+
+    try {
+      // Process manual job description
+      setState(prev => ({ ...prev, currentJobUrl: 'manual', manualJobDescription: description }));
+      addMessage('user', `Manual Job Description (${description.length} characters)`);
+
+      // Show job summary from manual description
+      addMessage('system', `📄 Manual job description submitted\n\nPlease provide your profile information or load a saved profile to continue.`);
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to process manual job description';
+      setError(errorMessage);
+      addMessage('system', `❌ Error: ${errorMessage}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleProfileSubmit = async (profile: UserProfile) => {
     try {
       await ApiService.saveProfile(profile);
@@ -106,8 +146,8 @@ const ChatInterface: React.FC = () => {
   };
 
   const handleCoverLetterRequest = async () => {
-    if (!state.currentJobUrl || !state.currentProfile) {
-      setError('Please provide both job URL and profile first');
+    if ((!state.currentJobUrl && !state.manualJobDescription) || !state.currentProfile) {
+      setError('Please provide both job description and profile first');
       return;
     }
 
@@ -117,12 +157,34 @@ const ChatInterface: React.FC = () => {
     try {
       addMessage('user', 'Generate Cover Letter');
 
-      const request = {
-        job_description_url: state.currentJobUrl,
+      const request: any = {
         user_profile: state.currentProfile,
       };
 
+      console.log('Building request - currentJobUrl:', state.currentJobUrl, 'manualJobDescription:', !!state.manualJobDescription);
+
+      // Only include job description fields if they exist
+      // Don't include URL if it's the placeholder "manual" value
+      if (state.currentJobUrl && state.currentJobUrl.trim() && state.currentJobUrl !== 'manual') {
+        request.job_description_url = state.currentJobUrl.trim();
+        console.log('Including job_description_url:', request.job_description_url);
+      }
+      if (state.manualJobDescription && state.manualJobDescription.trim()) {
+        request.job_description_text = state.manualJobDescription.trim();
+        console.log('Including job_description_text, length:', request.job_description_text.length);
+      }
+
+      console.log('Final request keys:', Object.keys(request));
+
       const response: CoverLetterApiResponse = await ApiService.generateCoverLetter(request);
+
+      // Show agent progress visualization
+      if (response.agent_steps) {
+        addMessage('agent_progress', {
+          agentSteps: response.agent_steps,
+          isComplete: true,
+        });
+      }
 
       // Show job summary
       addMessage('system', `📋 Job Summary:\n${response.job_summary.role_summary}\n\n🏢 Company: ${response.job_summary.company_context}`);
@@ -157,8 +219,8 @@ const ChatInterface: React.FC = () => {
   };
 
   const handleQuestionSubmit = async (question: string) => {
-    if (!state.currentJobUrl || !state.currentProfile) {
-      setError('Please provide both job URL and profile first');
+    if ((!state.currentJobUrl && !state.manualJobDescription) || !state.currentProfile) {
+      setError('Please provide both job description and profile first');
       return;
     }
 
@@ -168,13 +230,35 @@ const ChatInterface: React.FC = () => {
     try {
       addMessage('user', `Question: ${question}`);
 
-      const request = {
-        job_description_url: state.currentJobUrl,
+      const request: any = {
         hr_question: question,
         user_profile: state.currentProfile,
       };
 
+      console.log('Building QA request - currentJobUrl:', state.currentJobUrl, 'manualJobDescription:', !!state.manualJobDescription);
+
+      // Only include job description fields if they exist
+      // Don't include URL if it's the placeholder "manual" value
+      if (state.currentJobUrl && state.currentJobUrl.trim() && state.currentJobUrl !== 'manual') {
+        request.job_description_url = state.currentJobUrl.trim();
+        console.log('Including job_description_url:', request.job_description_url);
+      }
+      if (state.manualJobDescription && state.manualJobDescription.trim()) {
+        request.job_description_text = state.manualJobDescription.trim();
+        console.log('Including job_description_text, length:', request.job_description_text.length);
+      }
+
+      console.log('Final QA request keys:', Object.keys(request));
+
       const response: QuestionAnswerApiResponse = await ApiService.generateAnswer(request);
+
+      // Show agent progress visualization
+      if (response.agent_steps) {
+        addMessage('agent_progress', {
+          agentSteps: response.agent_steps,
+          isComplete: true,
+        });
+      }
 
       // Show generated answer
       addMessage('assistant', {
@@ -270,6 +354,7 @@ const ChatInterface: React.FC = () => {
       <div className="chat-inputs">
         <JobUrlInput
           onSubmit={handleJobUrlSubmit}
+          onManualSubmit={handleManualJobDescriptionSubmit}
           disabled={state.isLoading}
         />
 
@@ -281,12 +366,12 @@ const ChatInterface: React.FC = () => {
 
         <ActionButtons
           onCoverLetterClick={handleCoverLetterRequest}
-          disabled={state.isLoading || !state.currentJobUrl || !state.currentProfile}
+          disabled={state.isLoading || (!state.currentJobUrl && !state.manualJobDescription) || !state.currentProfile}
         />
 
         <QuestionInput
           onSubmit={handleQuestionSubmit}
-          disabled={state.isLoading || !state.currentJobUrl || !state.currentProfile}
+          disabled={state.isLoading || (!state.currentJobUrl && !state.manualJobDescription) || !state.currentProfile}
         />
       </div>
 

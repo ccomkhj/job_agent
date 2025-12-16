@@ -1,12 +1,11 @@
 import json
 import logging
-from typing import Dict, Any
-
-from langchain_core.prompts import PromptTemplate
-from langchain_core.output_parsers import JsonOutputParser
+from typing import Any, Dict
 
 from chains import get_llm, load_prompt_template
-from schemas.models import JobDescription, UserProfile, DataCollectorOutput
+from langchain_core.output_parsers import JsonOutputParser
+from langchain_core.prompts import PromptTemplate
+from schemas.models import DataCollectorOutput, JobDescription, UserProfile
 from utils.profile_normalizer import ProfileNormalizer
 
 logger = logging.getLogger(__name__)
@@ -33,7 +32,9 @@ class DataCollectorAgent:
             self._chain = prompt | llm | self.output_parser
         return self._chain
 
-    async def collect_data(self, job_description: JobDescription, user_profile: UserProfile) -> DataCollectorOutput:
+    async def collect_data(
+        self, job_description: JobDescription, user_profile: UserProfile
+    ) -> DataCollectorOutput:
         """
         Analyze job description and select the most relevant profile data.
 
@@ -49,11 +50,16 @@ class DataCollectorAgent:
             job_desc_text = self._format_job_description(job_description)
             profile_text = self._format_user_profile(user_profile)
 
+            logger.info("Data Collector processing job")
+            if "CONTENT GUIDANCE" in profile_text:
+                logger.info("Data Collector: CONTENT GUIDANCE included in profile text")
+            else:
+                logger.info("Data Collector: No CONTENT GUIDANCE in profile text")
+
             # Run the chain
-            result = await self.chain.ainvoke({
-                "job_description": job_desc_text,
-                "user_profile": profile_text
-            })
+            result = await self.chain.ainvoke(
+                {"job_description": job_desc_text, "user_profile": profile_text}
+            )
 
             # Validate and return structured output
             return DataCollectorOutput(**result)
@@ -66,7 +72,7 @@ class DataCollectorAgent:
                 relevant_skills=[],
                 relevant_experience=[],
                 relevant_education=[],
-                motivational_alignment="Seeking to apply skills to this role."
+                motivational_alignment="Seeking to apply skills to this role.",
             )
 
     def _format_job_description(self, job_desc: JobDescription) -> str:
@@ -104,18 +110,26 @@ class DataCollectorAgent:
 
         sections.append("\nCareer Background Variants:")
 
-        career_variants = {
-            "Data Science": profile.career_background.data_science,
-            "Data Engineering": profile.career_background.data_engineering,
-            "Computer Vision": profile.career_background.computer_vision,
-            "CTO/Technical Leadership": profile.career_background.cto
-        }
+        # Handle dynamic career categories
+        career_categories = profile.career_background.careers
 
-        for variant_name, content in career_variants.items():
-            if content:
-                sections.append(f"\n{variant_name}:")
-                sections.append(content)
+        for category_name, career_story in career_categories.items():
+            if career_story:
+                sections.append(f"\n{category_name}:")
+                if career_story.initiator:
+                    sections.append(f"  CONTENT GUIDANCE: {career_story.initiator}")
+                    sections.append(
+                        f"  IMPORTANT: Follow this guidance when generating content for {category_name}"
+                    )
+                if career_story.achievement_sample:
+                    sections.append(
+                        f"  Achievements: {career_story.achievement_sample}"
+                    )
+                if career_story.education_profile:
+                    sections.append(f"  Education: {career_story.education_profile}")
+                if career_story.motivation_goals:
+                    sections.append(f"  Motivation: {career_story.motivation_goals}")
             else:
-                sections.append(f"\n{variant_name}: Not provided")
+                sections.append(f"\n{category_name}: Not provided")
 
         return "\n".join(sections)

@@ -172,3 +172,44 @@ class ProfileStorageService:
         data["default_profile_id"] = profile_id
         self._save_data(data)
         return True
+
+
+class LocalProfileService:
+    """Service for simple local profile storage (single profile)"""
+
+    def __init__(self, storage_file: str = "data/local_profile.json"):
+        self.storage_file = storage_file
+        # Ensure directory exists
+        os.makedirs(os.path.dirname(storage_file), exist_ok=True)
+
+    def save_profile(self, profile: UserProfile) -> None:
+        """Save a single profile to local file"""
+        # Convert to dict for JSON serialization
+        data = profile.dict()
+
+        with open(self.storage_file, "w") as f:
+            json.dump(data, f, indent=2, default=str)
+
+    def load_profile(self) -> Optional[UserProfile]:
+        """Load the single profile from local file"""
+        if not os.path.exists(self.storage_file):
+            return None
+
+        try:
+            with open(self.storage_file, "r") as f:
+                data = json.load(f)
+                return UserProfile(**data)
+        except (json.JSONDecodeError, KeyError) as e:
+            print(f"Error loading local profile: {e}")
+            return None
+
+    def has_profile(self) -> bool:
+        """Check if a profile exists"""
+        return os.path.exists(self.storage_file)
+
+    def delete_profile(self) -> bool:
+        """Delete the local profile"""
+        if os.path.exists(self.storage_file):
+            os.remove(self.storage_file)
+            return True
+        return False

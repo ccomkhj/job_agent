@@ -1,18 +1,18 @@
 import logging
 from typing import Tuple
 
+from agents.data_collector import DataCollectorAgent
+from agents.feedback import FeedbackAgent
+from agents.writer import WriterAgent
+from loaders.job_description_loader import JobDescriptionLoader
 from schemas.models import (
-    JobDescription,
-    UserProfile,
     CoverLetterRequest,
     CoverLetterResponse,
+    DataCollectorOutput,
     FeedbackResponse,
-    DataCollectorOutput
+    JobDescription,
+    UserProfile,
 )
-from agents.data_collector import DataCollectorAgent
-from agents.writer import WriterAgent
-from agents.feedback import FeedbackAgent
-from loaders.job_description_loader import JobDescriptionLoader
 from utils.profile_normalizer import ProfileNormalizer
 
 logger = logging.getLogger(__name__)
@@ -28,7 +28,11 @@ class CoverLetterWriterChain:
         self.writer = WriterAgent()
         self.feedback_agent = FeedbackAgent()
 
-    async def generate_cover_letter(self, request: CoverLetterRequest) -> Tuple[CoverLetterResponse, FeedbackResponse, JobDescription, DataCollectorOutput]:
+    async def generate_cover_letter(
+        self, request: CoverLetterRequest
+    ) -> Tuple[
+        CoverLetterResponse, FeedbackResponse, JobDescription, DataCollectorOutput
+    ]:
         """
         Generate a cover letter with feedback.
 
@@ -40,28 +44,49 @@ class CoverLetterWriterChain:
         """
         try:
             # Step 1: Load and parse job description
-            logger.info(f"Loading job description from {request.job_description_url}")
-            job_description = await self.job_loader.load(str(request.job_description_url))
+            if request.job_description_url:
+                logger.info(
+                    f"Loading job description from {request.job_description_url}"
+                )
+                job_description = await self.job_loader.load(
+                    str(request.job_description_url)
+                )
+            elif request.job_description_text:
+                logger.info("Parsing manual job description text")
+                job_description = self.job_loader.load_from_text(
+                    request.job_description_text
+                )
+            else:
+                raise ValueError(
+                    "Either job_description_url or job_description_text must be provided"
+                )
 
             # Step 2: Normalize user profile
             logger.info("Normalizing user profile")
-            normalized_profile = self.profile_normalizer.normalize(request.user_profile.dict())
+            normalized_profile = self.profile_normalizer.normalize(
+                request.user_profile.dict()
+            )
 
             # Step 3: Collect relevant profile data
             logger.info("Collecting relevant profile data")
-            filtered_profile = await self.data_collector.collect_data(job_description, normalized_profile)
+            filtered_profile = await self.data_collector.collect_data(
+                job_description, normalized_profile
+            )
 
             # Step 4: Generate cover letter
             logger.info("Generating cover letter")
-            cover_letter = await self.writer.write_cover_letter(job_description, filtered_profile)
+            cover_letter = await self.writer.write_cover_letter(
+                job_description, filtered_profile
+            )
 
             # Step 5: Generate feedback
             logger.info("Generating feedback")
-            feedback = await self.feedback_agent.provide_feedback(cover_letter, job_description, filtered_profile)
+            feedback = await self.feedback_agent.provide_feedback(
+                cover_letter, job_description, filtered_profile
+            )
 
             return cover_letter, feedback, job_description, filtered_profile
 
         except Exception as e:
             logger.error(f"Error in cover letter generation chain: {e}")
             raise
-

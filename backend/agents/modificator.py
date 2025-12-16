@@ -1,18 +1,17 @@
 import json
 import logging
-from typing import Dict, Any, Union
-
-from langchain_core.prompts import PromptTemplate
-from langchain_core.output_parsers import JsonOutputParser
+from typing import Any, Dict, Union
 
 from chains import get_llm, load_prompt_template
+from langchain_core.output_parsers import JsonOutputParser
+from langchain_core.prompts import PromptTemplate
 from schemas.models import (
-    JobDescription,
-    DataCollectorOutput,
     CoverLetterResponse,
-    QuestionAnswerResponse,
+    DataCollectorOutput,
     FeedbackItem,
-    ModificationResponse
+    JobDescription,
+    ModificationResponse,
+    QuestionAnswerResponse,
 )
 
 logger = logging.getLogger(__name__)
@@ -33,7 +32,12 @@ class ModificatorAgent:
             prompt_text = load_prompt_template("modificator")
             prompt = PromptTemplate(
                 template=prompt_text,
-                input_variables=["original_content", "selected_feedback", "filtered_profile", "job_description"],
+                input_variables=[
+                    "original_content",
+                    "selected_feedback",
+                    "filtered_profile",
+                    "job_description",
+                ],
             )
             self._chain = prompt | llm | self.output_parser
         return self._chain
@@ -43,7 +47,7 @@ class ModificatorAgent:
         original_content: Union[CoverLetterResponse, QuestionAnswerResponse],
         selected_feedback: list[FeedbackItem],
         filtered_profile: DataCollectorOutput,
-        job_description: JobDescription
+        job_description: JobDescription,
     ) -> ModificationResponse:
         """
         Apply selected feedback to modify the original content.
@@ -58,30 +62,55 @@ class ModificatorAgent:
             ModificationResponse: Modified content
         """
         try:
+            logger.info(
+                f"Starting modification with {len(selected_feedback)} feedback items"
+            )
+            logger.info(f"Original content type: {type(original_content)}")
+
             # Format inputs for the prompt
             content_text = self._format_original_content(original_content)
             feedback_text = self._format_selected_feedback(selected_feedback)
             profile_text = self._format_filtered_profile(filtered_profile)
             job_desc_text = self._format_job_description(job_description)
 
+            logger.info(f"Formatted feedback: {feedback_text[:200]}...")
+
             # Run the chain
-            result = await self.chain.ainvoke({
-                "original_content": content_text,
-                "selected_feedback": feedback_text,
-                "filtered_profile": profile_text,
-                "job_description": job_desc_text
-            })
+            result = await self.chain.ainvoke(
+                {
+                    "original_content": content_text,
+                    "selected_feedback": feedback_text,
+                    "filtered_profile": profile_text,
+                    "job_description": job_desc_text,
+                }
+            )
+
+            logger.info(f"Modificator received result: {result}")
 
             # Determine the output type and validate
             if isinstance(original_content, CoverLetterResponse):
                 # Should return CoverLetterResponse format
                 validated_result = CoverLetterResponse(**result)
+                logger.info(f"Created modified cover letter: {validated_result.title}")
+                logger.info(
+                    f"Original body length: {len(original_content.body)}, Modified body length: {len(validated_result.body)}"
+                )
+                if original_content.body == validated_result.body:
+                    logger.warning(
+                        "WARNING: Modified content is identical to original!"
+                    )
             elif isinstance(original_content, QuestionAnswerResponse):
                 # Should return QuestionAnswerResponse format
                 validated_result = QuestionAnswerResponse(**result)
+                logger.info(
+                    f"Created modified answer: {validated_result.answer[:100]}..."
+                )
+                if original_content.answer == validated_result.answer:
+                    logger.warning("WARNING: Modified answer is identical to original!")
             else:
                 # Fallback
                 validated_result = result
+                logger.info(f"Using fallback result: {validated_result}")
 
             return ModificationResponse(modified_output=validated_result)
 
@@ -90,7 +119,9 @@ class ModificatorAgent:
             # Return original content as fallback
             return ModificationResponse(modified_output=original_content)
 
-    def _format_original_content(self, content: Union[CoverLetterResponse, QuestionAnswerResponse]) -> str:
+    def _format_original_content(
+        self, content: Union[CoverLetterResponse, QuestionAnswerResponse]
+    ) -> str:
         """Format original content for the prompt"""
         if isinstance(content, CoverLetterResponse):
             return f"""Cover Letter:
@@ -138,7 +169,9 @@ Follow-up Question: {content.follow_up_question}"""
         """Format filtered profile data for the prompt"""
         sections = []
 
-        sections.append(f"Selected Profile Version: {filtered_profile.selected_profile_version}")
+        sections.append(
+            f"Selected Profile Version: {filtered_profile.selected_profile_version}"
+        )
 
         if filtered_profile.relevant_skills:
             sections.append("Relevant Skills:")
@@ -155,7 +188,9 @@ Follow-up Question: {content.follow_up_question}"""
             for edu in filtered_profile.relevant_education:
                 sections.append(f"- {edu}")
 
-        sections.append(f"Motivational Alignment: {filtered_profile.motivational_alignment}")
+        sections.append(
+            f"Motivational Alignment: {filtered_profile.motivational_alignment}"
+        )
 
         return "\n\n".join(sections)
 

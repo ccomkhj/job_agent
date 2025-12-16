@@ -1,10 +1,16 @@
 // TypeScript type definitions matching backend Pydantic models
 
+export interface CareerStory {
+  initiator?: string;
+  achievement_sample?: string;
+  education_profile?: string;
+  motivation_goals?: string;
+}
+
 export interface CareerBackground {
-  data_science?: string;
-  data_engineering?: string;
-  computer_vision?: string;
-  cto?: string;
+  careers: {
+    [categoryName: string]: CareerStory;
+  };
 }
 
 export interface UserProfile {
@@ -31,7 +37,8 @@ export interface DataCollectorOutput {
 }
 
 export interface CoverLetterRequest {
-  job_description_url: string;
+  job_description_url?: string;
+  job_description_text?: string;
   user_profile: UserProfile;
 }
 
@@ -42,7 +49,8 @@ export interface CoverLetterResponse {
 }
 
 export interface QuestionAnswerRequest {
-  job_description_url: string;
+  job_description_url?: string;
+  job_description_text?: string;
   hr_question: string;
   user_profile: UserProfile;
 }
@@ -75,6 +83,14 @@ export interface ModificationResponse {
 }
 
 // API Response types
+export interface AgentStep {
+  agent: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'error';
+  description: string;
+  result?: any;
+  timestamp?: Date;
+}
+
 export interface CoverLetterApiResponse {
   cover_letter: CoverLetterResponse;
   feedback: FeedbackResponse;
@@ -84,6 +100,7 @@ export interface CoverLetterApiResponse {
     company_context: string;
   };
   filtered_profile: DataCollectorOutput;
+  agent_steps?: AgentStep[];
 }
 
 export interface QuestionAnswerApiResponse {
@@ -95,6 +112,7 @@ export interface QuestionAnswerApiResponse {
     company_context: string;
   };
   filtered_profile: DataCollectorOutput;
+  agent_steps?: AgentStep[];
 }
 
 export interface ErrorResponse {
@@ -104,7 +122,7 @@ export interface ErrorResponse {
 }
 
 // Chat message types
-export type MessageType = 'user' | 'system' | 'assistant';
+export type MessageType = 'user' | 'system' | 'assistant' | 'agent_progress';
 
 export interface ChatMessage {
   id: string;
@@ -117,8 +135,11 @@ export interface ChatMessage {
 export interface AppState {
   currentJobUrl?: string;
   currentProfile?: UserProfile;
+  manualJobDescription?: string;
   messages: ChatMessage[];
   isLoading: boolean;
   error?: string;
 }
+
+
 

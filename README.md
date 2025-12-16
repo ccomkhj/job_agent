@@ -18,6 +18,12 @@ Job Agent uses a **multi-agent AI system** with 4 specialized agents working tog
 
 The system ensures **zero hallucination** - all content is based solely on the information you provide, with intelligent matching between your experience and job requirements.
 
+## 🎨 Interface Demo
+
+| Main Chat Interface | Profile Setup & Job Processing |
+|-------------------|-------------------------------|
+| ![Job Agent Interface](frontend/src/assets/demo/interface_1.png) | ![Profile Input Interface](frontend/src/assets/demo/interface_2.png) |
+
 ## 🎯 Project Status & TODO List
 
 ### ✅ **Core Features (Complete)**

@@ -20,8 +20,9 @@ from schemas.models import (
     SessionDataResponse,
     SessionUpdateRequest,
     StoredUserProfile,
+    UserProfile,
 )
-from services.profile_storage import ProfileStorageService
+from services.profile_storage import LocalProfileService, ProfileStorageService
 from services.session_manager import SessionManager
 from utils.error_handler import JobAgentError
 
@@ -35,6 +36,7 @@ _question_answer_chain = None
 _modificator_agent = None
 _profile_storage = None
 _session_manager = None
+_local_profile_service = None
 
 
 def get_cover_letter_chain() -> CoverLetterWriterChain:
@@ -72,6 +74,13 @@ def get_session_manager() -> SessionManager:
     return _session_manager
 
 
+def get_local_profile_service() -> LocalProfileService:
+    global _local_profile_service
+    if _local_profile_service is None:
+        _local_profile_service = LocalProfileService()
+    return _local_profile_service
+
+
 def get_job_loader() -> JobDescriptionLoader:
     # Job loader is stateless, so we can create a new instance each time
     # In production, this could be cached if needed
@@ -96,12 +105,82 @@ async def generate_cover_letter(
     Returns cover letter, feedback suggestions, and metadata for further processing.
     """
     try:
-        logger.info(f"Generating cover letter for job: {request.job_description_url}")
+        logger.info(
+            f"Generating cover letter - URL: {request.job_description_url}, Text: {bool(request.job_description_text)}"
+        )
 
         chain = get_cover_letter_chain()
         cover_letter, feedback, job_description, filtered_profile = (
             await chain.generate_cover_letter(request)
         )
+
+        # Create agent steps for visualization
+        agent_steps = [
+            {
+                "agent": "Job Description Loader",
+                "status": "completed",
+                "description": f"Loaded and parsed job description from {request.job_description_url or 'manual input'}",
+                "result": {
+                    "title": job_description.title,
+                    "company": "Extracted from job posting",
+                    "key_requirements": len(job_description.requirements),
+                    "responsibilities": len(job_description.responsibilities),
+                },
+            },
+            {
+                "agent": "Data Collector",
+                "status": "completed",
+                "description": "Analyzed user profile and selected the most relevant experience for this role",
+                "result": {
+                    "selected_profile": filtered_profile.selected_profile_version,
+                    "relevant_skills": len(filtered_profile.relevant_skills),
+                    "relevant_experience": len(filtered_profile.relevant_experience),
+                    "top_skills": (
+                        filtered_profile.relevant_skills[:3]
+                        if filtered_profile.relevant_skills
+                        else []
+                    ),
+                    "motivational_alignment": (
+                        filtered_profile.motivational_alignment[:100] + "..."
+                        if len(filtered_profile.motivational_alignment) > 100
+                        else filtered_profile.motivational_alignment
+                    ),
+                },
+            },
+            {
+                "agent": "Writer Agent",
+                "status": "completed",
+                "description": "Crafted personalized content using selected profile data and job requirements",
+                "result": {
+                    "title": cover_letter.title,
+                    "body_length": len(cover_letter.body),
+                    "word_count": len(cover_letter.body.split()),
+                    "key_points_used": len(cover_letter.key_points_used),
+                    "key_points": (
+                        cover_letter.key_points_used[:3]
+                        if cover_letter.key_points_used
+                        else []
+                    ),
+                },
+            },
+            {
+                "agent": "Feedback Agent",
+                "status": "completed",
+                "description": "Analyzed content and provided specific improvement suggestions",
+                "result": {
+                    "feedback_items": len(feedback.feedback_items),
+                    "categories": list(
+                        set(item.type.value for item in feedback.feedback_items)
+                    ),
+                    "suggestions": [
+                        {"type": item.type.value, "suggestion": item.suggestion}
+                        for item in feedback.feedback_items[
+                            :3
+                        ]  # Show top 3 suggestions
+                    ],
+                },
+            },
+        ]
 
         response = {
             "cover_letter": cover_letter.dict(),
@@ -112,6 +191,7 @@ async def generate_cover_letter(
                 "company_context": job_description.company_context,
             },
             "filtered_profile": filtered_profile.dict(),
+            "agent_steps": agent_steps,
         }
 
         logger.info("Cover letter generated successfully")
@@ -155,6 +235,72 @@ async def generate_answer(
             await chain.answer_question(request)
         )
 
+        # Create agent steps for visualization
+        agent_steps = [
+            {
+                "agent": "Job Description Loader",
+                "status": "completed",
+                "description": f"Loaded and parsed job description from {request.job_description_url or 'manual input'}",
+                "result": {
+                    "title": job_description.title,
+                    "company": "Extracted from job posting",
+                    "key_requirements": len(job_description.requirements),
+                    "responsibilities": len(job_description.responsibilities),
+                },
+            },
+            {
+                "agent": "Data Collector",
+                "status": "completed",
+                "description": "Analyzed user profile and selected the most relevant experience for this role",
+                "result": {
+                    "selected_profile": filtered_profile.selected_profile_version,
+                    "relevant_skills": len(filtered_profile.relevant_skills),
+                    "relevant_experience": len(filtered_profile.relevant_experience),
+                    "top_skills": (
+                        filtered_profile.relevant_skills[:3]
+                        if filtered_profile.relevant_skills
+                        else []
+                    ),
+                    "motivational_alignment": (
+                        filtered_profile.motivational_alignment[:100] + "..."
+                        if len(filtered_profile.motivational_alignment) > 100
+                        else filtered_profile.motivational_alignment
+                    ),
+                },
+            },
+            {
+                "agent": "Writer Agent",
+                "status": "completed",
+                "description": "Crafted thoughtful, personalized answer based on profile and job context",
+                "result": {
+                    "answer_length": len(answer.answer),
+                    "word_count": len(answer.answer.split()),
+                    "assumptions": len(answer.assumptions),
+                    "follow_up_question": answer.follow_up_question is not None,
+                    "key_assumptions": (
+                        answer.assumptions[:2] if answer.assumptions else []
+                    ),
+                },
+            },
+            {
+                "agent": "Feedback Agent",
+                "status": "completed",
+                "description": "Analyzed content and provided specific improvement suggestions",
+                "result": {
+                    "feedback_items": len(feedback.feedback_items),
+                    "categories": list(
+                        set(item.type.value for item in feedback.feedback_items)
+                    ),
+                    "suggestions": [
+                        {"type": item.type.value, "suggestion": item.suggestion}
+                        for item in feedback.feedback_items[
+                            :3
+                        ]  # Show top 3 suggestions
+                    ],
+                },
+            },
+        ]
+
         response = {
             "answer": answer.dict(),
             "feedback": feedback.dict(),
@@ -164,6 +310,7 @@ async def generate_answer(
                 "company_context": job_description.company_context,
             },
             "filtered_profile": filtered_profile.dict(),
+            "agent_steps": agent_steps,
         }
 
         logger.info("HR question answered successfully")
@@ -495,6 +642,104 @@ async def get_default_profile():
 
     except Exception as e:
         logger.error(f"Error getting default profile: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+# Local Profile Storage Endpoints
+
+
+@router.post(
+    "/local-profile",
+    response_model=Dict[str, str],
+    responses={
+        200: {"description": "Profile saved successfully"},
+        500: {"model": ErrorResponse, "description": "Internal server error"},
+    },
+)
+async def save_local_profile(profile: UserProfile):
+    """
+    Save a user profile to local server storage.
+
+    The profile will persist across server restarts and be available
+    to all users of this server instance.
+    """
+    try:
+        logger.info("Saving local profile")
+
+        local_service = get_local_profile_service()
+        local_service.save_profile(profile)
+
+        logger.info("Local profile saved successfully")
+        return {"message": "Profile saved successfully"}
+
+    except Exception as e:
+        logger.error(f"Error saving local profile: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.get(
+    "/local-profile",
+    response_model=UserProfile,
+    responses={
+        200: {"description": "Profile retrieved successfully"},
+        404: {"model": ErrorResponse, "description": "No profile found"},
+        500: {"model": ErrorResponse, "description": "Internal server error"},
+    },
+)
+async def get_local_profile():
+    """
+    Get the locally stored user profile.
+
+    Returns the profile that was previously saved to local server storage.
+    """
+    try:
+        logger.info("Getting local profile")
+
+        local_service = get_local_profile_service()
+        profile = local_service.load_profile()
+
+        if profile is None:
+            raise HTTPException(status_code=404, detail="No local profile found")
+
+        logger.info("Local profile retrieved successfully")
+        return profile
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting local profile: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.delete(
+    "/local-profile",
+    response_model=Dict[str, str],
+    responses={
+        200: {"description": "Profile deleted successfully"},
+        404: {"model": ErrorResponse, "description": "No profile found"},
+        500: {"model": ErrorResponse, "description": "Internal server error"},
+    },
+)
+async def delete_local_profile():
+    """
+    Delete the locally stored user profile.
+    """
+    try:
+        logger.info("Deleting local profile")
+
+        local_service = get_local_profile_service()
+        deleted = local_service.delete_profile()
+
+        if not deleted:
+            raise HTTPException(status_code=404, detail="No local profile found")
+
+        logger.info("Local profile deleted successfully")
+        return {"message": "Profile deleted successfully"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting local profile: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 

@@ -2,12 +2,15 @@ import React, { useState } from 'react';
 
 interface JobUrlInputProps {
   onSubmit: (url: string) => void;
+  onManualSubmit?: (description: string) => void;
   disabled?: boolean;
 }
 
-const JobUrlInput: React.FC<JobUrlInputProps> = ({ onSubmit, disabled = false }) => {
+const JobUrlInput: React.FC<JobUrlInputProps> = ({ onSubmit, onManualSubmit, disabled = false }) => {
   const [url, setUrl] = useState('');
   const [isValid, setIsValid] = useState(true);
+  const [showManualModal, setShowManualModal] = useState(false);
+  const [manualDescription, setManualDescription] = useState('');
 
   const validateUrl = (inputUrl: string) => {
     const urlPattern = /^https?:\/\/.+/i;
@@ -45,6 +48,19 @@ const JobUrlInput: React.FC<JobUrlInputProps> = ({ onSubmit, disabled = false })
     }
   };
 
+  const handleManualSubmit = () => {
+    if (manualDescription.trim() && onManualSubmit) {
+      onManualSubmit(manualDescription.trim());
+      setManualDescription('');
+      setShowManualModal(false);
+    }
+  };
+
+  const handleModalClose = () => {
+    setShowManualModal(false);
+    setManualDescription('');
+  };
+
   return (
     <div className="job-url-input">
       <form onSubmit={handleSubmit} className="input-form">
@@ -65,17 +81,74 @@ const JobUrlInput: React.FC<JobUrlInputProps> = ({ onSubmit, disabled = false })
             </div>
           )}
         </div>
-        <button
-          type="submit"
-          disabled={disabled || !url.trim() || !isValid}
-          className="submit-button"
-        >
-          Submit Job URL
-        </button>
+        <div className="button-group">
+          <button
+            type="submit"
+            disabled={disabled || !url.trim() || !isValid}
+            className="submit-button"
+          >
+            Submit Job URL
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowManualModal(true)}
+            disabled={disabled}
+            className="manual-description-button"
+          >
+            Add description manually
+          </button>
+        </div>
       </form>
+
+      {/* Manual Description Modal */}
+      {showManualModal && (
+        <div className="modal-overlay" onClick={handleModalClose}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Add Job Description Manually</h3>
+              <button
+                type="button"
+                onClick={handleModalClose}
+                className="modal-close"
+              >
+                ×
+              </button>
+            </div>
+            <div className="modal-body">
+              <textarea
+                value={manualDescription}
+                onChange={(e) => setManualDescription(e.target.value)}
+                placeholder="Paste the job description content here..."
+                rows={15}
+                className="manual-description-textarea"
+                autoFocus
+              />
+            </div>
+            <div className="modal-footer">
+              <button
+                type="button"
+                onClick={handleModalClose}
+                className="cancel-button"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleManualSubmit}
+                disabled={!manualDescription.trim()}
+                className="submit-manual-button"
+              >
+                Submit Description
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
 export default JobUrlInput;
+
+
 

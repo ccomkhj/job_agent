@@ -74,6 +74,12 @@ class JobDescriptionLoader:
         Raises:
             JobAgentError: For various error conditions with appropriate categories
         """
+        # Special handling for manual descriptions
+        if url == "manual":
+            raise ValueError(
+                "Manual job descriptions should use load_from_text method, not load method"
+            )
+
         if not self._is_valid_url(url):
             raise ValueError(f"Invalid URL: {url}")
 
@@ -100,8 +106,102 @@ class JobDescriptionLoader:
 
         return JobDescription(url=url, **parsed_data)
 
+    def load_from_text(self, text: str) -> JobDescription:
+        """
+        Parse job description from raw text content.
+
+        Args:
+            text: Raw job description text
+
+        Returns:
+            JobDescription: Parsed job description data
+        """
+        # Parse the text content
+        parsed_data = self._parse_text_content(text)
+
+        return JobDescription(url="manual", **parsed_data)
+
+    def _parse_text_content(self, text: str) -> Dict[str, Any]:
+        """
+        Parse raw text content to extract job description components.
+        Similar to _parse_html_content but works with plain text.
+        """
+        # Extract title from first line or common patterns
+        title = self._extract_title_from_text(text)
+
+        # Parse different sections from text
+        responsibilities = self._extract_responsibilities(text)
+        requirements = self._extract_requirements(text)
+        role_summary = self._extract_role_summary(text, title)
+        company_context = self._extract_company_context_from_text(text)
+
+        return {
+            "title": title,
+            "responsibilities": responsibilities,
+            "requirements": requirements,
+            "role_summary": role_summary,
+            "company_context": company_context,
+        }
+
+    def _extract_title_from_text(self, text: str) -> Optional[str]:
+        """Extract job title from raw text"""
+        lines = text.split("\n")[:5]  # Check first few lines
+
+        for line in lines:
+            line = line.strip()
+            # Look for lines that look like job titles (reasonable length, not too long)
+            if 10 <= len(line) <= 100:
+                # Skip lines that look like URLs, emails, or addresses
+                if not any(
+                    indicator in line.lower()
+                    for indicator in ["http", "@", "www.", "street", "avenue", "city"]
+                ):
+                    # Check if it looks like a job title (contains common job title words)
+                    title_indicators = [
+                        "engineer",
+                        "developer",
+                        "manager",
+                        "analyst",
+                        "scientist",
+                        "designer",
+                        "specialist",
+                        "lead",
+                        "senior",
+                        "junior",
+                        "director",
+                        "vp",
+                    ]
+                    if any(indicator in line.lower() for indicator in title_indicators):
+                        return line
+
+        return None
+
+    def _extract_company_context_from_text(self, text: str) -> str:
+        """Extract company information from raw text"""
+        # Look for company description sections
+        company_patterns = [
+            r"About us:?\s*\n?(.*?)(?:\n\n|\n[A-Z]|$)",
+            r"About the company:?\s*\n?(.*?)(?:\n\n|\n[A-Z]|$)",
+            r"Who we are:?\s*\n?(.*?)(?:\n\n|\n[A-Z]|$)",
+            r"Company description:?\s*\n?(.*?)(?:\n\n|\n[A-Z]|$)",
+        ]
+
+        for pattern in company_patterns:
+            matches = re.findall(pattern, text, re.IGNORECASE | re.DOTALL)
+            for match in matches:
+                context = match.strip()
+                if len(context) > 30:
+                    return context
+
+        # Fallback
+        return "This is an exciting opportunity with a great company."
+
     def _is_valid_url(self, url: str) -> bool:
         """Validate URL format and check if it's a job-related URL"""
+        # Special case for manual descriptions
+        if url == "manual":
+            return True
+
         try:
             parsed = urlparse(url)
             if not bool(parsed.scheme and parsed.netloc):

@@ -60,6 +60,18 @@ class WriterAgent:
             profile_text = self._format_filtered_profile(filtered_profile)
             job_desc_text = self._format_job_description(job_description)
 
+            logger.info(f"Writer generating cover letter")
+            if "CONTENT GUIDANCE" in profile_text:
+                logger.info("CONTENT GUIDANCE found in profile text")
+                # Show the guidance section
+                for line in profile_text.split("\n"):
+                    if "CONTENT GUIDANCE" in line:
+                        logger.info(f"Guidance line: {line}")
+            else:
+                logger.info("No CONTENT GUIDANCE found in profile text")
+
+            logger.info(f"Profile text preview: {profile_text[:500]}...")
+
             # Run the chain
             result = await self.chain.ainvoke(
                 {

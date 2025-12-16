@@ -11,6 +11,7 @@ CONSTRAINTS:
 - NEVER invent companies, dates, titles, metrics, or experiences
 - Maintain professional, concise tone
 - Ensure content is job-specific and profile-consistent
+- Follow any CONTENT GUIDANCE provided in the profile data
 - For cover letters: Focus on why you're qualified and motivated
 - For HR questions: Answer directly, ask for clarification if information is missing
 

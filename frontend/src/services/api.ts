@@ -1,13 +1,13 @@
 import axios, { type AxiosResponse } from 'axios';
 import type {
-  CoverLetterRequest,
-  CoverLetterApiResponse,
-  QuestionAnswerRequest,
-  QuestionAnswerApiResponse,
-  ModificationRequest,
-  ModificationResponse,
-  ErrorResponse,
-  UserProfile
+    CoverLetterApiResponse,
+    CoverLetterRequest,
+    ErrorResponse,
+    ModificationRequest,
+    ModificationResponse,
+    QuestionAnswerApiResponse,
+    QuestionAnswerRequest,
+    UserProfile
 } from '../types';
 
 // Configure axios instance
@@ -71,25 +71,33 @@ export class ApiService {
   }
 
   /**
-   * Save user profile (placeholder for future implementation)
+   * Save user profile to server-side local storage
    */
   static async saveProfile(profile: UserProfile): Promise<void> {
-    // Placeholder - would save to backend/localStorage
-    localStorage.setItem('userProfile', JSON.stringify(profile));
+    const response: AxiosResponse<{ message: string }> = await api.post('/local-profile', profile);
+    return response.data;
   }
 
   /**
-   * Load user profile (placeholder for future implementation)
+   * Load user profile from server-side local storage
    */
   static async loadProfile(): Promise<UserProfile | null> {
     try {
-      const saved = localStorage.getItem('userProfile');
-      return saved ? JSON.parse(saved) : null;
-    } catch (error) {
-      console.error('Error loading profile:', error);
+      console.log('ApiService: Loading profile from server...');
+      const response: AxiosResponse<UserProfile> = await api.get('/local-profile');
+      console.log('ApiService: Profile loaded successfully', response.data);
+      return response.data;
+    } catch (error: any) {
+      // If profile not found, return null (not an error)
+      if (error.response?.status === 404) {
+        console.log('ApiService: No profile found (404)');
+        return null;
+      }
+      console.error('ApiService: Error loading profile:', error);
       return null;
     }
   }
+
 }
 
 // Utility functions for clipboard operations

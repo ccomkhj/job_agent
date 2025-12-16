@@ -1,7 +1,8 @@
 import React from 'react';
 import type { ChatMessage, FeedbackItem } from '../types';
-import OutputDisplay from './OutputDisplay';
+import AgentProgress from './AgentProgress';
 import FeedbackSelector from './FeedbackSelector';
+import OutputDisplay from './OutputDisplay';
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -40,6 +41,15 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onFeedbackApply 
             onFeedbackApply={onFeedbackApply || ((selectedFeedback) => {
               console.log('Feedback selected:', selectedFeedback);
             })}
+          />
+        );
+      }
+
+      if (contentData.agentSteps) {
+        return (
+          <AgentProgress
+            agentSteps={contentData.agentSteps}
+            isComplete={contentData.isComplete}
           />
         );
       }

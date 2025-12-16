@@ -198,3 +198,5 @@ class SessionManager:
         """Clean up an invalid session file"""
         session_file = self._get_session_file(session_id)
         session_file.unlink(missing_ok=True)
+
+

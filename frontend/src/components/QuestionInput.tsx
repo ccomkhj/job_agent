@@ -20,18 +20,6 @@ const QuestionInput: React.FC<QuestionInputProps> = ({ onSubmit, disabled = fals
     setQuestion(''); // Clear input after submission
   };
 
-  const commonQuestions = [
-    "Why are you interested in this position?",
-    "What makes you a good fit for our team?",
-    "Tell us about a challenging project you've worked on.",
-    "Where do you see yourself in 5 years?",
-    "What are your salary expectations?",
-    "Why do you want to leave your current role?",
-  ];
-
-  const handleQuestionSelect = (selectedQuestion: string) => {
-    setQuestion(selectedQuestion);
-  };
 
   return (
     <div className="question-input">
@@ -49,24 +37,6 @@ const QuestionInput: React.FC<QuestionInputProps> = ({ onSubmit, disabled = fals
           />
         </div>
 
-        <div className="quick-questions">
-          <label>Quick select common questions:</label>
-          <div className="question-buttons">
-            {commonQuestions.map((q, index) => (
-              <button
-                key={index}
-                type="button"
-                onClick={() => handleQuestionSelect(q)}
-                disabled={disabled}
-                className="question-button"
-                title={q}
-              >
-                {q.length > 40 ? q.substring(0, 37) + '...' : q}
-              </button>
-            ))}
-          </div>
-        </div>
-
         <button
           type="submit"
           disabled={disabled || !question.trim()}
@@ -80,4 +50,6 @@ const QuestionInput: React.FC<QuestionInputProps> = ({ onSubmit, disabled = fals
 };
 
 export default QuestionInput;
+
+
 
