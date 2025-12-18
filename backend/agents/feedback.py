@@ -137,6 +137,10 @@ Follow-up Question: {content.follow_up_question}"""
 
         sections.append(f"Selected Profile Version: {filtered_profile.selected_profile_version}")
 
+        if filtered_profile.content_guidance:
+            sections.append("Content Guidance (must follow):")
+            sections.append(filtered_profile.content_guidance)
+
         if filtered_profile.relevant_skills:
             sections.append("Relevant Skills:")
             for skill in filtered_profile.relevant_skills:

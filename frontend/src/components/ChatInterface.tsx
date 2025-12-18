@@ -28,9 +28,13 @@ const ChatInterface: React.FC = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [state.messages]);
 
-  // Load saved profile on component mount
+  // Load saved profile on component mount (guard against StrictMode double-invoke)
+  const hasLoadedProfile = useRef(false);
   useEffect(() => {
     const loadSavedProfile = async () => {
+      if (hasLoadedProfile.current) return;
+      hasLoadedProfile.current = true;
+
       try {
         console.log('ChatInterface: Loading saved profile...');
         const savedProfile = await ApiService.loadProfile();
@@ -41,8 +45,11 @@ const ChatInterface: React.FC = () => {
           setState(prev => ({ ...prev, currentProfile: savedProfile }));
 
           // Count how many career categories have content
-          const careerCount = Object.keys(savedProfile.career_background.careers || {}).length;
-          const hasDataScience = savedProfile.career_background.careers?.['Data Science'];
+          const careers = savedProfile.career_background.careers || {};
+          const careerCount = Object.keys(careers).length;
+          const hasDataScience = Object.keys(careers).some(
+            key => key.toLowerCase() === 'data science' || key.toLowerCase() === 'data_science'
+          );
 
           let profileType = 'Empty profile';
           if (careerCount > 0) {

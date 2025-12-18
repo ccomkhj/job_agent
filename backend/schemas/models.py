@@ -58,6 +58,10 @@ class DataCollectorOutput(BaseModel):
     motivational_alignment: str = Field(
         ..., description="How motivation aligns with job"
     )
+    content_guidance: str = Field(
+        default="",
+        description="Content guidance for the selected profile variant to enforce tone/angle",
+    )
 
 
 class CoverLetterRequest(BaseModel):

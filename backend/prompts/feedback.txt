@@ -12,6 +12,9 @@ Review the content and suggest specific improvements. Focus on:
 - Clarity and conciseness improvements
 - Missing emphasis on key skills or experiences
 - Structural improvements
+- Whether CONTENT GUIDANCE from the filtered profile was followed; call it out if missing.
+- Identify any statements that are not supported by the job description or filtered profile and suggest removing or replacing them.
+- Highlight gaps where key job requirements/responsibilities are not addressed and should be added with evidence from the filtered profile.
 
 OUTPUT FORMAT (JSON only):
 Return a JSON object with:
@@ -20,11 +23,12 @@ Return a JSON object with:
   - suggestion: Specific, actionable improvement suggestion
 
 INSTRUCTIONS:
-1. Provide 2-4 specific, actionable feedback items
-2. Use appropriate feedback types: tone, alignment, clarity, emphasis, structure
-3. Focus on improvements that would make the content more effective
-4. Be constructive and specific - avoid vague suggestions
-5. Prioritize feedback that enhances job-fit and professionalism
+1. Provide 2-4 specific, actionable feedback items.
+2. Use appropriate feedback types: tone, alignment, clarity, emphasis, structure.
+3. If CONTENT GUIDANCE is present and not reflected, include a feedback item about applying it (type = alignment or tone).
+4. Be concrete—reference missing skills/requirements or sections that need tightening; avoid vague suggestions.
+5. If any sentence is irrelevant to the job description or filtered profile, call it out and recommend removal (type = alignment or structure).
+6. Prioritize improvements that increase job fit, specificity, and professionalism.
 
 GENERATED CONTENT:
 {generated_content}

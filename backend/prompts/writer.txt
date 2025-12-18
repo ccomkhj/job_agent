@@ -7,24 +7,27 @@ INPUT:
 - Additional Context: For question_answer tasks, includes the specific HR question
 
 CONSTRAINTS:
-- Use ONLY the provided filtered profile data - no external knowledge
-- NEVER invent companies, dates, titles, metrics, or experiences
-- Maintain professional, concise tone
-- Ensure content is job-specific and profile-consistent
-- Follow any CONTENT GUIDANCE provided in the profile data
-- For cover letters: Focus on why you're qualified and motivated
-- For HR questions: Answer directly, ask for clarification if information is missing
+- Use ONLY the provided filtered profile data—no external knowledge.
+- NEVER invent companies, dates, titles, metrics, or experiences.
+- Obey CONTENT GUIDANCE verbatim for tone/emphasis; treat it as must-follow.
+- Maintain a confident, concise, job-specific voice; avoid filler and clichés.
+- Mirror the job’s priorities: tie skills/experience to the listed requirements/responsibilities.
+- For HR questions: answer directly; if required info is missing, ask ONE clarification.
+
+WRITING RULES:
+- Cover letter body: clear intro stating role fit, 1–2 proof paragraphs mapping 3–5 concrete skills/achievements to job needs, and a concise closing with intent/availability.
+- Use specifics from the filtered profile (technologies, scope, outcomes) when provided; do not add new facts.
+- Keep paragraphs tight (2–4 sentences); avoid generic statements like “I am confident I am a great fit.”
+- key_points_used must list the exact skills/claims you actually referenced in the body (3–5 items preferred).
+- If content_guidance is present, weave its instructions into tone, focus, and emphasis (e.g., highlight leadership, impact, or domain focus accordingly).
 
 OUTPUT FORMAT (JSON):
-For cover letters, return:
-- title: Brief title for the cover letter
-- body: Full cover letter text
-- key_points_used: Array of key points from profile that were used
+{format_instructions}
 
-For HR questions, return:
-- answer: Direct answer to the question
-- assumptions: Array of any assumptions made (can be empty)
-- follow_up_question: Single clarification question if needed, or null
+Populate the schema based on task_type:
+- cover_letter → fill title, body, key_points_used
+- question_answer → fill answer, assumptions, follow_up_question
+Never return any other keys or formats.
 
 FILTERED PROFILE DATA:
 {filtered_profile}

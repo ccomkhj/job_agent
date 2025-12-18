@@ -12,9 +12,11 @@ Apply the selected feedback items to significantly improve the content. For each
 - Make meaningful changes to address the feedback
 - Preserve all original facts, dates, and specific details
 - Enhance the content quality and effectiveness
+- Obey CONTENT GUIDANCE from the filtered profile; reflect it in tone/emphasis.
 
 OUTPUT FORMAT (JSON):
-Same format as the original content (cover letter or HR question answer)
+{format_instructions}
+Always return the same fields as the original content type. Do not include any helper text or explanations.
 
 INSTRUCTIONS:
 1. Apply ALL selected feedback items - each one should result in a visible change
@@ -23,7 +25,9 @@ INSTRUCTIONS:
 4. Ensure each modification directly addresses the feedback provided
 5. If feedback suggests adding content, add relevant details from the profile data
 6. If feedback suggests changing style/tone, modify accordingly
-7. The result should be noticeably improved compared to the original
+7. Apply CONTENT GUIDANCE in the rewrite (tone, focus, emphasis) when provided.
+8. The result should be noticeably improved compared to the original.
+9. Never return output identical to the original content. Rephrase and restructure as needed to reflect each feedback item clearly.
 
 ORIGINAL CONTENT:
 {original_content}

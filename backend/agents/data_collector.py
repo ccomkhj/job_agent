@@ -28,6 +28,9 @@ class DataCollectorAgent:
             prompt = PromptTemplate(
                 template=prompt_text,
                 input_variables=["job_description", "user_profile"],
+                partial_variables={
+                    "format_instructions": self.output_parser.get_format_instructions()
+                },
             )
             self._chain = prompt | llm | self.output_parser
         return self._chain
@@ -73,6 +76,7 @@ class DataCollectorAgent:
                 relevant_experience=[],
                 relevant_education=[],
                 motivational_alignment="Seeking to apply skills to this role.",
+                content_guidance="",
             )
 
     def _format_job_description(self, job_desc: JobDescription) -> str:

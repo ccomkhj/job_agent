@@ -21,26 +21,35 @@ class ModificatorAgent:
     """Agent responsible for applying user-selected feedback to modify generated content"""
 
     def __init__(self):
-        self.output_parser = JsonOutputParser()
-        self._chain = None
+        self._chains: dict[str, Any] = {}
 
-    @property
-    def chain(self):
-        """Lazy-load the LangChain chain"""
-        if self._chain is None:
-            llm = get_llm()
-            prompt_text = load_prompt_template("modificator")
-            prompt = PromptTemplate(
-                template=prompt_text,
-                input_variables=[
-                    "original_content",
-                    "selected_feedback",
-                    "filtered_profile",
-                    "job_description",
-                ],
-            )
-            self._chain = prompt | llm | self.output_parser
-        return self._chain
+    def _get_chain(
+        self, output_type: str
+    ):
+        """Build or retrieve a chain for the specific output type."""
+        if output_type in self._chains:
+            return self._chains[output_type]
+
+        llm = get_llm()
+        if output_type == "cover_letter":
+            parser = JsonOutputParser(pydantic_object=CoverLetterResponse)
+        else:
+            parser = JsonOutputParser(pydantic_object=QuestionAnswerResponse)
+
+        prompt_text = load_prompt_template("modificator")
+        prompt = PromptTemplate(
+            template=prompt_text,
+            input_variables=[
+                "original_content",
+                "selected_feedback",
+                "filtered_profile",
+                "job_description",
+            ],
+            partial_variables={"format_instructions": parser.get_format_instructions()},
+        )
+        chain = prompt | llm | parser
+        self._chains[output_type] = chain
+        return chain
 
     async def apply_modifications(
         self,
@@ -75,8 +84,16 @@ class ModificatorAgent:
 
             logger.info(f"Formatted feedback: {feedback_text[:200]}...")
 
+            output_type = (
+                "cover_letter"
+                if isinstance(original_content, CoverLetterResponse)
+                else "question_answer"
+            )
+
+            chain = self._get_chain(output_type)
+
             # Run the chain
-            result = await self.chain.ainvoke(
+            result = await chain.ainvoke(
                 {
                     "original_content": content_text,
                     "selected_feedback": feedback_text,
@@ -85,32 +102,23 @@ class ModificatorAgent:
                 }
             )
 
-            logger.info(f"Modificator received result: {result}")
+            logger.info("Modificator received result from LLM")
 
-            # Determine the output type and validate
-            if isinstance(original_content, CoverLetterResponse):
-                # Should return CoverLetterResponse format
-                validated_result = CoverLetterResponse(**result)
-                logger.info(f"Created modified cover letter: {validated_result.title}")
-                logger.info(
-                    f"Original body length: {len(original_content.body)}, Modified body length: {len(validated_result.body)}"
+            validated_result = self._validate_result(original_content, result)
+
+            # If nothing changed, retry once with stronger instruction
+            if self._is_identical(original_content, validated_result) and selected_feedback:
+                logger.warning("Modified content is identical to original. Retrying with stronger instruction.")
+                forced_feedback_text = feedback_text + "\nIMPORTANT: The previous attempt matched the original. Apply each feedback item and change wording/structure so differences are visible."
+                retry_result = await chain.ainvoke(
+                    {
+                        "original_content": content_text,
+                        "selected_feedback": forced_feedback_text,
+                        "filtered_profile": profile_text,
+                        "job_description": job_desc_text,
+                    }
                 )
-                if original_content.body == validated_result.body:
-                    logger.warning(
-                        "WARNING: Modified content is identical to original!"
-                    )
-            elif isinstance(original_content, QuestionAnswerResponse):
-                # Should return QuestionAnswerResponse format
-                validated_result = QuestionAnswerResponse(**result)
-                logger.info(
-                    f"Created modified answer: {validated_result.answer[:100]}..."
-                )
-                if original_content.answer == validated_result.answer:
-                    logger.warning("WARNING: Modified answer is identical to original!")
-            else:
-                # Fallback
-                validated_result = result
-                logger.info(f"Using fallback result: {validated_result}")
+                validated_result = self._validate_result(original_content, retry_result)
 
             return ModificationResponse(modified_output=validated_result)
 
@@ -118,6 +126,43 @@ class ModificatorAgent:
             logger.error(f"Error applying modifications: {e}")
             # Return original content as fallback
             return ModificationResponse(modified_output=original_content)
+
+    def _validate_result(
+        self,
+        original_content: Union[CoverLetterResponse, QuestionAnswerResponse],
+        result: Dict[str, Any],
+    ) -> Union[CoverLetterResponse, QuestionAnswerResponse, Dict[str, Any]]:
+        """Validate and coerce the result into the correct response model."""
+        if isinstance(original_content, CoverLetterResponse):
+            validated_result = CoverLetterResponse(**result)
+            logger.info(f"Created modified cover letter: {validated_result.title}")
+            return validated_result
+        if isinstance(original_content, QuestionAnswerResponse):
+            validated_result = QuestionAnswerResponse(**result)
+            logger.info(f"Created modified answer: {validated_result.answer[:100]}...")
+            return validated_result
+
+        logger.info("Unknown content type, returning raw result")
+        return result
+
+    def _is_identical(
+        self,
+        original_content: Union[CoverLetterResponse, QuestionAnswerResponse],
+        new_content: Union[CoverLetterResponse, QuestionAnswerResponse, Dict[str, Any]],
+    ) -> bool:
+        """Check if modified content is effectively identical to the original."""
+        try:
+            if isinstance(original_content, CoverLetterResponse) and isinstance(
+                new_content, CoverLetterResponse
+            ):
+                return original_content.body.strip() == new_content.body.strip()
+            if isinstance(original_content, QuestionAnswerResponse) and isinstance(
+                new_content, QuestionAnswerResponse
+            ):
+                return original_content.answer.strip() == new_content.answer.strip()
+        except Exception:
+            return False
+        return False
 
     def _format_original_content(
         self, content: Union[CoverLetterResponse, QuestionAnswerResponse]
@@ -172,6 +217,10 @@ Follow-up Question: {content.follow_up_question}"""
         sections.append(
             f"Selected Profile Version: {filtered_profile.selected_profile_version}"
         )
+
+        if filtered_profile.content_guidance:
+            sections.append("Content Guidance (must follow):")
+            sections.append(filtered_profile.content_guidance)
 
         if filtered_profile.relevant_skills:
             sections.append("Relevant Skills:")

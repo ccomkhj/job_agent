@@ -20,26 +20,39 @@ class WriterAgent:
     """Agent responsible for generating cover letters and answering HR questions"""
 
     def __init__(self):
-        self.output_parser = JsonOutputParser()
-        self._chain = None
+        self._cover_letter_chain = None
+        self._question_answer_chain = None
+
+    def _build_chain(self, output_model):
+        """Create a chain with format instructions for the target output model"""
+        llm = get_llm()
+        parser = JsonOutputParser(pydantic_object=output_model)
+        prompt_text = load_prompt_template("writer")
+        prompt = PromptTemplate(
+            template=prompt_text,
+            input_variables=[
+                "filtered_profile",
+                "job_description",
+                "task_type",
+                "additional_context",
+            ],
+            partial_variables={"format_instructions": parser.get_format_instructions()},
+        )
+        return prompt | llm | parser
 
     @property
-    def chain(self):
-        """Lazy-load the LangChain chain"""
-        if self._chain is None:
-            llm = get_llm()
-            prompt_text = load_prompt_template("writer")
-            prompt = PromptTemplate(
-                template=prompt_text,
-                input_variables=[
-                    "filtered_profile",
-                    "job_description",
-                    "task_type",
-                    "additional_context",
-                ],
-            )
-            self._chain = prompt | llm | self.output_parser
-        return self._chain
+    def cover_letter_chain(self):
+        """Lazy-load chain for cover letters"""
+        if self._cover_letter_chain is None:
+            self._cover_letter_chain = self._build_chain(CoverLetterResponse)
+        return self._cover_letter_chain
+
+    @property
+    def question_answer_chain(self):
+        """Lazy-load chain for HR questions"""
+        if self._question_answer_chain is None:
+            self._question_answer_chain = self._build_chain(QuestionAnswerResponse)
+        return self._question_answer_chain
 
     @handle_llm_errors
     async def write_cover_letter(
@@ -73,7 +86,7 @@ class WriterAgent:
             logger.info(f"Profile text preview: {profile_text[:500]}...")
 
             # Run the chain
-            result = await self.chain.ainvoke(
+            result = await self.cover_letter_chain.ainvoke(
                 {
                     "filtered_profile": profile_text,
                     "job_description": job_desc_text,
@@ -118,7 +131,7 @@ class WriterAgent:
             job_desc_text = self._format_job_description(job_description)
 
             # Run the chain
-            result = await self.chain.ainvoke(
+            result = await self.question_answer_chain.ainvoke(
                 {
                     "filtered_profile": profile_text,
                     "job_description": job_desc_text,
@@ -146,6 +159,10 @@ class WriterAgent:
         sections.append(
             f"Selected Profile Version: {filtered_profile.selected_profile_version}"
         )
+
+        if filtered_profile.content_guidance:
+            sections.append("Content Guidance (must follow):")
+            sections.append(filtered_profile.content_guidance)
 
         if filtered_profile.relevant_skills:
             sections.append("Relevant Skills:")

@@ -44,13 +44,16 @@ The system ensures **zero hallucination** - all content is based solely on the i
 - [x] **Environment Configuration**: API key setup and validation
 - [x] **Dependency Management**: uv for Python, npm for Node.js
 - [x] **Development Setup**: Local development environment ready
+- [ ] **Context Persistence for Modify**: Store/reuse job description and filtered profile so feedback edits stay grounded
+- [ ] **Data Collector & Writer Tuning**: Broaden role variant coverage, keep richer job details, and extract key points to drive better drafts
+- [ ] **LLM Observability & Tests**: Structured logging around prompt→parser calls plus regression checks to catch fallback/JSON failures
 - [ ] **CI/CD Pipeline**: Automated testing and deployment
 - [ ] **Monitoring**: Logging, metrics, and error tracking
-- [ ] **Session Persistence**: Chat history survives browser refreshes (frontend)
-- [ ] **Profile Management UI**: Advanced profile editing and templates
-- [ ] **Batch Processing**: Generate content for multiple jobs simultaneously
 
 ### 🚀 **Future Enhancements**
+- [ ] **Session Persistence (Frontend)**: Chat history survives browser refreshes
+- [ ] **Profile Management UI**: Advanced profile editing and templates
+- [ ] **Batch Processing**: Generate content for multiple jobs simultaneously
 - [ ] **Analytics Dashboard**: Track application success rates
 - [ ] **Profile Templates**: Pre-built profiles for common roles
 - [ ] **Integration APIs**: Connect with LinkedIn, Indeed, and job platforms

@@ -34,6 +34,7 @@ export interface DataCollectorOutput {
   relevant_experience: string[];
   relevant_education: string[];
   motivational_alignment: string;
+  content_guidance?: string;
 }
 
 export interface CoverLetterRequest {
@@ -140,6 +141,5 @@ export interface AppState {
   isLoading: boolean;
   error?: string;
 }
-
 
 
