@@ -35,6 +35,8 @@ export interface DataCollectorOutput {
   relevant_education: string[];
   motivational_alignment: string;
   content_guidance?: string;
+  target_requirements?: string[];
+  target_responsibilities?: string[];
 }
 
 export interface CoverLetterRequest {
@@ -77,6 +79,8 @@ export interface ModificationRequest {
   original_output: any; // CoverLetterResponse or QuestionAnswerResponse as dict
   selected_feedback: FeedbackItem[];
   output_type: 'cover_letter' | 'question_answer';
+  job_description?: JobDescription;
+  filtered_profile?: DataCollectorOutput;
 }
 
 export interface ModificationResponse {
@@ -100,6 +104,7 @@ export interface CoverLetterApiResponse {
     role_summary: string;
     company_context: string;
   };
+  job_description: JobDescription;
   filtered_profile: DataCollectorOutput;
   agent_steps?: AgentStep[];
 }
@@ -112,6 +117,7 @@ export interface QuestionAnswerApiResponse {
     role_summary: string;
     company_context: string;
   };
+  job_description: JobDescription;
   filtered_profile: DataCollectorOutput;
   agent_steps?: AgentStep[];
 }
@@ -141,5 +147,3 @@ export interface AppState {
   isLoading: boolean;
   error?: string;
 }
-
-

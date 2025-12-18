@@ -6,8 +6,10 @@ from chains import CoverLetterWriterChain, QuestionAnswerWriterChain
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from loaders.job_description_loader import JobDescriptionLoader
 from schemas.models import (
+    DataCollectorOutput,
     CoverLetterRequest,
     CoverLetterResponse,
+    JobDescription,
     ErrorResponse,
     MessageCreateRequest,
     ModificationRequest,
@@ -190,6 +192,7 @@ async def generate_cover_letter(
                 "role_summary": job_description.role_summary,
                 "company_context": job_description.company_context,
             },
+            "job_description": job_description.dict(),
             "filtered_profile": filtered_profile.dict(),
             "agent_steps": agent_steps,
         }
@@ -309,6 +312,7 @@ async def generate_answer(
                 "role_summary": job_description.role_summary,
                 "company_context": job_description.company_context,
             },
+            "job_description": job_description.dict(),
             "filtered_profile": filtered_profile.dict(),
             "agent_steps": agent_steps,
         }
@@ -363,26 +367,32 @@ async def modify_output(request: ModificationRequest):
         else:
             raise ValueError(f"Unknown output type: {content_type}")
 
-        # We need job description and filtered profile for context
-        # For now, we'll use minimal context - in a full implementation,
-        # these would be stored/retrieved from session state
-        from schemas.models import DataCollectorOutput, JobDescription
-
-        # Placeholder - in real implementation, retrieve from session/cache
-        job_desc = JobDescription(
-            url="https://example.com/job",
-            responsibilities=[],
-            requirements=[],
-            role_summary="Job role",
-            company_context="Company context",
+        # Use provided context if available, otherwise fall back to minimal placeholders
+        job_desc = (
+            request.job_description
+            if request.job_description
+            else JobDescription(
+                url="https://example.com/job",
+                responsibilities=[],
+                requirements=[],
+                role_summary="Job role",
+                company_context="Company context",
+            )
         )
 
-        filtered_profile = DataCollectorOutput(
-            selected_profile_version="General",
-            relevant_skills=[],
-            relevant_experience=[],
-            relevant_education=[],
-            motivational_alignment="Motivated to contribute",
+        filtered_profile = (
+            request.filtered_profile
+            if request.filtered_profile
+            else DataCollectorOutput(
+                selected_profile_version="General",
+                relevant_skills=[],
+                relevant_experience=[],
+                relevant_education=[],
+                motivational_alignment="Motivated to contribute",
+                content_guidance="",
+                target_requirements=[],
+                target_responsibilities=[],
+            )
         )
 
         agent = get_modificator_agent()

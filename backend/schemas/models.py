@@ -62,6 +62,14 @@ class DataCollectorOutput(BaseModel):
         default="",
         description="Content guidance for the selected profile variant to enforce tone/angle",
     )
+    target_requirements: List[str] = Field(
+        default_factory=list,
+        description="Top job requirements to explicitly address in writing",
+    )
+    target_responsibilities: List[str] = Field(
+        default_factory=list,
+        description="Top responsibilities to reflect in writing",
+    )
 
 
 class CoverLetterRequest(BaseModel):
@@ -146,6 +154,12 @@ class ModificationRequest(BaseModel):
     )
     output_type: str = Field(
         ..., description="Type of output: 'cover_letter' or 'question_answer'"
+    )
+    job_description: Optional[JobDescription] = Field(
+        None, description="Full job description context to keep modifications grounded"
+    )
+    filtered_profile: Optional[DataCollectorOutput] = Field(
+        None, description="Filtered profile context used for the original generation"
     )
 
 

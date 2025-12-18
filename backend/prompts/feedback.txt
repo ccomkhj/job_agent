@@ -15,6 +15,7 @@ Review the content and suggest specific improvements. Focus on:
 - Whether CONTENT GUIDANCE from the filtered profile was followed; call it out if missing.
 - Identify any statements that are not supported by the job description or filtered profile and suggest removing or replacing them.
 - Highlight gaps where key job requirements/responsibilities are not addressed and should be added with evidence from the filtered profile.
+- Ensure target_requirements and target_responsibilities are addressed directly; if missing, recommend concise additions tied to filtered profile evidence.
 
 OUTPUT FORMAT (JSON only):
 Return a JSON object with:

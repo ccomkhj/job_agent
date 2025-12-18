@@ -5,13 +5,22 @@ interface FeedbackSelectorProps {
   feedback: FeedbackResponse;
   contentType: 'cover_letter' | 'question_answer';
   originalOutput: any;
-  onFeedbackApply: (selectedFeedback: FeedbackItem[], originalOutput: any, contentType: string) => void;
+  jobDescription?: any;
+  filteredProfile?: any;
+  onFeedbackApply: (
+    selectedFeedback: FeedbackItem[],
+    originalOutput: any,
+    contentType: string,
+    context?: { jobDescription?: any; filteredProfile?: any }
+  ) => void;
 }
 
 const FeedbackSelector: React.FC<FeedbackSelectorProps> = ({
   feedback,
   contentType,
   originalOutput,
+  jobDescription,
+  filteredProfile,
   onFeedbackApply,
 }) => {
   const [selectedFeedback, setSelectedFeedback] = useState<Set<string>>(new Set());
@@ -32,7 +41,10 @@ const FeedbackSelector: React.FC<FeedbackSelectorProps> = ({
     );
 
     if (selectedItems.length > 0) {
-      onFeedbackApply(selectedItems, originalOutput, contentType);
+      onFeedbackApply(selectedItems, originalOutput, contentType, {
+        jobDescription,
+        filteredProfile,
+      });
       // Reset selection after applying
       setSelectedFeedback(new Set());
     }

@@ -14,13 +14,20 @@ Return a JSON object with these fields:
 - relevant_experience: Array of relevant experience items
 - relevant_education: Array of relevant education items
 - motivational_alignment: Why this candidate wants this role (string)
+- content_guidance: Strict instructions from the chosen career variant (string). Extract from CONTENT GUIDANCE / initiator / motivation_goals for that variant; keep it concise but complete.
+- target_requirements: 3-6 job requirements that best match the selected profile; quote/paraphrase from the job posting.
+- target_responsibilities: 2-4 core responsibilities from the job that the profile can address.
+Schema to follow:
+{format_instructions}
 
 INSTRUCTIONS:
-1. Choose ONE profile variant that best matches the job (Data Science, Data Engineering, Computer Vision, or CTO)
-2. Only include skills, experience, and education directly relevant to this job
-3. NEVER invent or hallucinate information - only use what's provided
-4. Keep the output concise but comprehensive
-5. Ensure motivational alignment explains why this candidate wants this specific role
+1. Choose ONE profile variant that best matches the job (or the closest provided variant).
+2. Only include skills, experience, and education directly relevant to this job.
+3. Capture the CONTENT GUIDANCE for the chosen variant exactly as provided so downstream agents can enforce tone/angle.
+4. NEVER invent or hallucinate information—only use what's provided.
+5. Keep motivational_alignment specific to this role, not generic.
+6. Keep content_guidance short (<120 words) but actionable.
+7. Select target_requirements/target_responsibilities straight from the job description; prefer items you can support with the filtered profile.
 
 JOB DESCRIPTION:
 {job_description}

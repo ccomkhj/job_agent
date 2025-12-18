@@ -6,7 +6,12 @@ import OutputDisplay from './OutputDisplay';
 
 interface MessageBubbleProps {
   message: ChatMessage;
-  onFeedbackApply?: (selectedFeedback: FeedbackItem[], originalOutput: any, contentType: string) => void;
+  onFeedbackApply?: (
+    selectedFeedback: FeedbackItem[],
+    originalOutput: any,
+    contentType: string,
+    context?: { jobDescription?: any; filteredProfile?: any }
+  ) => void;
 }
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onFeedbackApply }) => {
@@ -38,6 +43,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onFeedbackApply 
             feedback={contentData.data}
             contentType={contentData.contentType}
             originalOutput={contentData.originalOutput}
+            jobDescription={contentData.jobDescription}
+            filteredProfile={contentData.filteredProfile}
             onFeedbackApply={onFeedbackApply || ((selectedFeedback) => {
               console.log('Feedback selected:', selectedFeedback);
             })}

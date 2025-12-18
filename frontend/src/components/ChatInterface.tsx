@@ -203,6 +203,7 @@ const ChatInterface: React.FC = () => {
         metadata: {
           filteredProfile: response.filtered_profile,
           jobSummary: response.job_summary,
+          jobDescription: response.job_description,
         },
       });
 
@@ -213,6 +214,8 @@ const ChatInterface: React.FC = () => {
           data: response.feedback,
           contentType: 'cover_letter',
           originalOutput: response.cover_letter,
+          jobDescription: response.job_description,
+          filteredProfile: response.filtered_profile,
         });
       }
 
@@ -274,6 +277,7 @@ const ChatInterface: React.FC = () => {
         metadata: {
           filteredProfile: response.filtered_profile,
           jobSummary: response.job_summary,
+          jobDescription: response.job_description,
         },
       });
 
@@ -284,6 +288,8 @@ const ChatInterface: React.FC = () => {
           data: response.feedback,
           contentType: 'question_answer',
           originalOutput: response.answer,
+          jobDescription: response.job_description,
+          filteredProfile: response.filtered_profile,
         });
       }
 
@@ -296,7 +302,12 @@ const ChatInterface: React.FC = () => {
     }
   };
 
-  const handleFeedbackApply = async (selectedFeedback: FeedbackItem[], originalOutput: any, contentType: string) => {
+  const handleFeedbackApply = async (
+    selectedFeedback: FeedbackItem[],
+    originalOutput: any,
+    contentType: string,
+    context?: { jobDescription?: any; filteredProfile?: any }
+  ) => {
     setLoading(true);
     setError(undefined);
 
@@ -311,6 +322,8 @@ const ChatInterface: React.FC = () => {
         original_output: originalOutput,
         selected_feedback: selectedFeedback,
         output_type: outputType,
+        job_description: context?.jobDescription,
+        filtered_profile: context?.filteredProfile,
       };
 
       const response = await ApiService.modifyOutput(request);

@@ -18,7 +18,7 @@ WRITING RULES:
 - Cover letter body: clear intro stating role fit, 1–2 proof paragraphs mapping 3–5 concrete skills/achievements to job needs, and a concise closing with intent/availability.
 - Use specifics from the filtered profile (technologies, scope, outcomes) when provided; do not add new facts.
 - Keep paragraphs tight (2–4 sentences); avoid generic statements like “I am confident I am a great fit.”
-- key_points_used must list the exact skills/claims you actually referenced in the body (3–5 items preferred).
+- key_points_used must list the exact skills/claims you actually referenced in the body (3–5 items preferred), especially those tied to target_requirements/target_responsibilities.
 - If content_guidance is present, weave its instructions into tone, focus, and emphasis (e.g., highlight leadership, impact, or domain focus accordingly).
 
 OUTPUT FORMAT (JSON):

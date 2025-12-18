@@ -77,6 +77,8 @@ class DataCollectorAgent:
                 relevant_education=[],
                 motivational_alignment="Seeking to apply skills to this role.",
                 content_guidance="",
+                target_requirements=[],
+                target_responsibilities=[],
             )
 
     def _format_job_description(self, job_desc: JobDescription) -> str:

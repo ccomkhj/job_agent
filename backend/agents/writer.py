@@ -160,6 +160,16 @@ class WriterAgent:
             f"Selected Profile Version: {filtered_profile.selected_profile_version}"
         )
 
+        if filtered_profile.target_requirements:
+            sections.append("Target Job Requirements (must address):")
+            for req in filtered_profile.target_requirements:
+                sections.append(f"- {req}")
+
+        if filtered_profile.target_responsibilities:
+            sections.append("Target Responsibilities (must reflect):")
+            for resp in filtered_profile.target_responsibilities:
+                sections.append(f"- {resp}")
+
         if filtered_profile.content_guidance:
             sections.append("Content Guidance (must follow):")
             sections.append(filtered_profile.content_guidance)
